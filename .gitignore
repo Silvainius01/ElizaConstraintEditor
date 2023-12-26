@@ -4,6 +4,7 @@
 /Assets/*
 !/Assets/ElizaConstraintEditor
 !/Assets/ElizaConstraintEditor/*
+Assets/ElizaConstraintEditor/settings.json
 
 /Packages/*
 /ProjectSettings/*

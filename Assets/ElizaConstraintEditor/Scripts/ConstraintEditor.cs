@@ -6,6 +6,9 @@ using UnityEditor;
 using UnityEngine.Animations;
 using Unity.VisualScripting;
 using System.Security.Cryptography.X509Certificates;
+using Unity.Collections.LowLevel.Unsafe;
+using System.Runtime.CompilerServices;
+using Newtonsoft.Json.Bson;
 
 /*
  *  Made for Eliza (and whomever she shares this with) by Silvainius
@@ -28,8 +31,8 @@ namespace Eliza.ConstraintEditor
 {
     public class ConstraintEditor : EditorWindow
     {
-        enum EditorState { Standard, Settings }
-        
+        enum EditorState { Editor, Settings }
+
         const string ArmatureName = "Armature";
 
         bool UserAddingSource = false;
@@ -38,46 +41,12 @@ namespace Eliza.ConstraintEditor
         GameObject currentObject;
         Transform currentArmature;
         List<ConstraintMetaData> constraints = new List<ConstraintMetaData>();
+        ConstraintEditorSettings settings = LoadSettings();
 
-        EditorState state = EditorState.Standard;
+        EditorState state = EditorState.Editor;
 
         #region GUI Styles
         GUIStyle BoldText = new GUIStyle("boldLabel");
-        #endregion
-
-        #region Debug
-        bool EnableDebugMode = true;
-        int WidthMod = 80;
-        int xMod = 0;
-        string StringMod = string.Empty;
-
-        void DrawDebugInterface()
-        {
-            EditorGUILayout.LabelField("DEBUG:");
-            WidthMod = EditorGUILayout.IntField("WidthMod", WidthMod);
-            xMod = EditorGUILayout.IntField("xMod", xMod);
-            StringMod = EditorGUILayout.TextField("StringMod", StringMod);
-            EditorGUILayout.Space(10);
-
-            //using (new GUILayout.HorizontalScope())
-            //{
-            //    Rect yesButtonRect = EditorGUILayout.GetControlRect();
-            //    Rect noButtonRect = EditorGUILayout.GetControlRect();
-            //    float center = yesButtonRect.max.x + (noButtonRect.min.x - yesButtonRect.max.x) / 2;
-
-            //    yesButtonRect.xMin = center - 125;
-            //    noButtonRect.xMax = center + 125;
-
-            //    GUI.Button(yesButtonRect, "Yes");
-            //    GUI.Button(noButtonRect, "No");
-            //}
-
-            //var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(xMod, WidthMod, 5);
-            //for (int i = 0; i < rGroup.Length; ++i)
-            //    GUI.Button(rGroup[i], i.ToString());
-
-            EditorGUILayout.Space(10);
-        }
         #endregion
 
         [MenuItem("Window/Constraint Editor")]
@@ -143,48 +112,109 @@ namespace Eliza.ConstraintEditor
 
         private void OnGUI()
         {
-            if (currentObject == null)
-            {
-                EditorUtility.DrawTitle("Select an object with an attached armature");
-                return;
-            }
-
             scrollPos = GUILayout.BeginScrollView(scrollPos, GUIStyle.none);
 
-            if (EnableDebugMode)
-                using (new GUILayout.VerticalScope())
-                    DrawDebugInterface();
+            EditorUtility.DrawTitle("Eliza Constraint Editor");
+            EditorGUILayout.Space(10);
 
-            switch(state)
+            if (settings.EnableDebugMode && EditorUtility.ToggleButton(
+                EditorUtility.GetCenteredControlRect(250),
+                ref EnableDebugMode,
+                trueLable: "Hide Debug",
+                falseLable: "Show Debug"))
             {
-                case EditorState.Standard:
-                    state = DrawStateStandard(); break;
+                using (new GUILayout.VerticalScope())
+                {
+                    DrawDebugInterface();
+                }
+            }
+
+            EditorState prevState = state;
+            if (state != EditorState.Settings && EditorUtility.CenteredButton("Editor Settings", 250))
+                state = EditorState.Settings;
+            else if (state != EditorState.Editor && EditorUtility.CenteredButton("Show Constraints", 250))
+                state = EditorState.Editor;
+
+            if (prevState != state && prevState == EditorState.Settings)
+                SaveSettings();
+
+            switch (state)
+            {
+                case EditorState.Editor:
+                    DrawStateStandard(); break;
                 case EditorState.Settings:
-                    break;
+                    DrawStateSettings(); break;
             }
 
             GUILayout.Space(40);
             GUILayout.EndScrollView();
         }
 
-        #region Standard State
-        private EditorState DrawStateStandard()
+        #region Debug
+        bool EnableDebugMode = true;
+        int WidthMod = 80;
+        int xMod = 0;
+        string StringMod = string.Empty;
+
+        void DrawDebugInterface()
         {
+            EditorGUILayout.LabelField("DEBUG:");
+            WidthMod = EditorGUILayout.IntField("WidthMod", WidthMod);
+            xMod = EditorGUILayout.IntField("xMod", xMod);
+            StringMod = EditorGUILayout.TextField("StringMod", StringMod);
+            EditorGUILayout.Space(10);
+
+            //using (new GUILayout.HorizontalScope())
+            //{
+            //    Rect yesButtonRect = EditorGUILayout.GetControlRect();
+            //    Rect noButtonRect = EditorGUILayout.GetControlRect();
+            //    float center = yesButtonRect.max.x + (noButtonRect.min.x - yesButtonRect.max.x) / 2;
+
+            //    yesButtonRect.xMin = center - 125;
+            //    noButtonRect.xMax = center + 125;
+
+            //    GUI.Button(yesButtonRect, "Yes");
+            //    GUI.Button(noButtonRect, "No");
+            //}
+
+            //var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(xMod, WidthMod, 5);
+            //for (int i = 0; i < rGroup.Length; ++i)
+            //    GUI.Button(rGroup[i], i.ToString());
+        }
+        #endregion
+
+        #region Standard State
+        private void DrawStateStandard()
+        {
+            EditorGUILayout.Space(10);
+
+            if (currentObject == null)
+            {
+                EditorUtility.DrawTitle("Select an object with an attached armature");
+                return;
+            }
+
             using (new GUILayout.VerticalScope())
             {
                 EditorUtility.DrawTitle($"{currentObject.name}/Armature");
+                EditorGUILayout.Space(10);
 
-                //using (new GUILayout.HorizontalScope())
+                EditorGUILayout.TextField("Template Name", templateName);
+                if (GUILayout.Button($"Save to {templateName}.json"))
+                    ConstraintSerializer.SaveConstraintsAsTemplate(templateName, constraints);
+                if (GUILayout.Button($"Load {templateName}.json"))
                 {
-                    EditorGUILayout.TextField("Template Name", templateName);
+                    if (settings.DestroyConstraintsOnLoad)
+                    {
+                        foreach (var cData in constraints)
+                            DestroyImmediate(cData.Constraint);
+                        constraints.Clear();
+                    }
 
-                    if (GUILayout.Button($"Save to {templateName}.json"))
-                        ConstraintSerializer.SaveConstraintsAsTemplate(templateName, constraints);
-
-                    if (GUILayout.Button($"Load {templateName}.json"))
-                        ConstraintSerializer.LoadConstraintsFromTempalte(templateName, currentArmature);
+                    ConstraintSerializer.LoadConstraintsFromTempalte(templateName, currentArmature);
                 }
 
+                EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Current Constraints:");
                 EditorGUI.indentLevel += 1;
                 for (int i = 0; i < constraints.Count; ++i)
@@ -203,7 +233,10 @@ namespace Eliza.ConstraintEditor
                 else
                 {
                     GameObject obj = EditorGUILayout.ObjectField("Target Object", null, typeof(GameObject), true) as GameObject;
-                    if (obj is not null)
+
+                    if (GUI.Button(EditorUtility.GetCenteredControlRect(250), "Cancel"))
+                        UserAddingSource = false;
+                    else if (obj is not null)
                     {
                         RotationConstraint constraint = null;
                         if (!obj.TryGetComponent<RotationConstraint>(out constraint))
@@ -216,7 +249,6 @@ namespace Eliza.ConstraintEditor
                     }
                 }
             }
-            return EditorState.Standard;
         }
         private void DrawConstraintFields(ConstraintMetaData cData)
         {
@@ -346,10 +378,59 @@ namespace Eliza.ConstraintEditor
         #endregion
 
         #region Settings State
-        private EditorState DrawSettingsState()
+        private void DrawStateSettings()
         {
+            EditorGUILayout.Space(10);
+            EditorUtility.DrawTitle("Editor Settings");
 
-            return EditorState.Settings;
+            using(new EditorGUILayout.VerticalScope())
+            {
+                settings.EnableDebugMode = EditorGUILayout.Toggle(
+                    new GUIContent(
+                        "Debug Mode",
+                        "Reveals internal developer settings. It will do nothing for you. It's for me."),
+                    settings.EnableDebugMode);
+
+                settings.DestroyConstraintsOnLoad = EditorGUILayout.Toggle(
+                    new GUIContent(
+                        "Destroy Constraints on Load",
+                        "If enabled, loading a template will destroy any existing constraints."),
+                    settings.DestroyConstraintsOnLoad);
+            }
+        }
+        private void SaveSettings()
+        {
+            string path = $"{Application.dataPath}/ElizaConstraintEditor/settings.json";
+            string templateJson = JsonUtility.ToJson(settings);
+
+            using (var stream = new FileStream(path, FileMode.Create, FileAccess.ReadWrite))
+            {
+                using (var writer = new StreamWriter(stream))
+                {
+                    writer.Write(templateJson);
+                }
+            }
+        }
+        private static ConstraintEditorSettings LoadSettings()
+        {
+            string json = string.Empty;
+            string path = $"{Application.dataPath}/ElizaConstraintEditor/settings.json";
+
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"No settings exist at {path}!");
+                return new ConstraintEditorSettings();
+            }
+
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                using (var reader = new StreamReader(stream))
+                {
+                    json = reader.ReadToEnd();
+                }
+            }
+
+            return (ConstraintEditorSettings)JsonUtility.FromJson(json, typeof(ConstraintEditorSettings));  
         }
         #endregion
     }
@@ -400,6 +481,7 @@ namespace Eliza.ConstraintEditor
         }
     }
 
+    [Serializable]
     public class ConstraintEditorSettings
     {
         public bool EnableDebugMode = false;

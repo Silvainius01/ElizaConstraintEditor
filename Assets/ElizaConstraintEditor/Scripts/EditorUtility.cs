@@ -92,5 +92,19 @@ namespace Eliza.ConstraintEditor
 
             return value;
         }
+
+        public static bool ToggleButton(Rect rect, ref bool value, string trueLable, string falseLable)
+        {
+            if(value)
+                value = !GUI.Button(rect, trueLable);
+            else value = GUI.Button(rect, falseLable);
+
+            return value;
+        }
+
+        public static bool CenteredButton(string label, float width)
+        {
+            return GUI.Button(GetCenteredControlRect(width), label);
+        }
     }
 }
