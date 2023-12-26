@@ -2,6 +2,7 @@
 # Custom
 # Ignore everything except, specifically, the editor.
 /Assets/*
+!/Assets/ElizaConstraintEditor
 !/Assets/ElizaConstraintEditor/*
 
 /Packages/*
