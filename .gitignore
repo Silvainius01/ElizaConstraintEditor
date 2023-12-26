@@ -1,10 +1,10 @@
 
 # Custom
 # Ignore everything except, specifically, the editor.
-/Assets/*
-/Pacakages/*
-/ProjectSettings/*
 !/Assets/ElizaConstraintEditor/*
+/Assets/*
+/Packages/*
+/ProjectSettings/*
 
 
 # This .gitignore file should be placed at the root of your Unity project directory
