@@ -59,22 +59,22 @@ namespace Eliza.ConstraintEditor
             StringMod = EditorGUILayout.TextField("StringMod", StringMod);
             EditorGUILayout.Space(10);
 
-            using (new GUILayout.HorizontalScope())
-            {
-                Rect yesButtonRect = EditorGUILayout.GetControlRect();
-                Rect noButtonRect = EditorGUILayout.GetControlRect();
-                float center = yesButtonRect.max.x + (noButtonRect.min.x - yesButtonRect.max.x) / 2;
+            //using (new GUILayout.HorizontalScope())
+            //{
+            //    Rect yesButtonRect = EditorGUILayout.GetControlRect();
+            //    Rect noButtonRect = EditorGUILayout.GetControlRect();
+            //    float center = yesButtonRect.max.x + (noButtonRect.min.x - yesButtonRect.max.x) / 2;
 
-                yesButtonRect.xMin = center - 125;
-                noButtonRect.xMax = center + 125;
+            //    yesButtonRect.xMin = center - 125;
+            //    noButtonRect.xMax = center + 125;
 
-                GUI.Button(yesButtonRect, "Yes");
-                GUI.Button(noButtonRect, "No");
-            }
+            //    GUI.Button(yesButtonRect, "Yes");
+            //    GUI.Button(noButtonRect, "No");
+            //}
 
-            var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(xMod, WidthMod, 5);
-            for (int i = 0; i < rGroup.Length; ++i)
-                GUI.Button(rGroup[i], i.ToString());
+            //var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(xMod, WidthMod, 5);
+            //for (int i = 0; i < rGroup.Length; ++i)
+            //    GUI.Button(rGroup[i], i.ToString());
 
             EditorGUILayout.Space(10);
         }
@@ -86,7 +86,7 @@ namespace Eliza.ConstraintEditor
             var window = GetWindow<ConstraintEditor>();
             //string iconPath = "Assets/ElizaConstraintEditor/ElizaCrystal_icon_16x16.png";
             //Texture icon = AssetDatabase.LoadAssetAtPath(iconPath, typeof(Texture)) as Texture;
-            //window.titleContent = new GUIContent("Constraint Editor", icon);
+            window.titleContent = new GUIContent("Constraint Editor" /*, icon*/);
         }
 
         private void OnSelectionChange()
