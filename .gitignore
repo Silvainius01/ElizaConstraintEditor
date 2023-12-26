@@ -6,6 +6,10 @@
 /Packages/*
 /ProjectSettings/*
 
+.vsconfig
+app.config
+Packages.config
+
 
 # This .gitignore file should be placed at the root of your Unity project directory
 #
