@@ -25,15 +25,25 @@ namespace Eliza.ConstraintEditor
 {
     public enum EditorState { Editor, Settings }
     public enum ConstraintRemovalState { NotRemoving, UserConfirm, Removing }
+    public enum EditorErrorCode { NoError, ArmatureNull, ParentNull, TransformNull, ConstraintNull }
 
     public class ConstraintEditor : EditorWindow
     {
         const string ArmatureName = "Armature";
+        public static ConstraintEditorSettings Settings
+        {
+            get
+            {
+                if (m_settings is null)
+                    m_settings = ConstraintSerializer.LoadSettings();
+                return m_settings;
+            }
+        }
+        private static ConstraintEditorSettings m_settings;
 
         bool UserAddingSource = false;
         string templateName = "ShortStack";
         Vector2 scrollPos = Vector2.zero;
-        ConstraintEditorSettings settings = null;
 
         int currentArmatureId;
         ArmatureData currentArmature => trackedArmatures.ContainsKey(currentArmatureId)
@@ -56,7 +66,6 @@ namespace Eliza.ConstraintEditor
             //Texture icon = AssetDatabase.LoadAssetAtPath(iconPath, typeof(Texture)) as Texture;
             window.titleContent = new GUIContent("Constraint Editor" /*, icon*/);
 
-            window.settings = ConstraintSerializer.LoadSettings();
             window.antiAlias = 1; // Fixes getting spammed by an error.
         }
 
@@ -109,7 +118,7 @@ namespace Eliza.ConstraintEditor
             EditorUtility.DrawTitle("Eliza Constraint Editor");
             EditorGUILayout.Space(10);
 
-            if (settings.EnableDebugMode && EditorUtility.ToggleButton(
+            if (Settings.EnableDebugMode && EditorUtility.ToggleButton(
                 EditorUtility.GetCenteredControlRect(250),
                 ref EnableDebugMode,
                 trueLable: "Hide Debug",
@@ -128,7 +137,7 @@ namespace Eliza.ConstraintEditor
                 state = EditorState.Editor;
 
             if (prevState != state && prevState == EditorState.Settings)
-                ConstraintSerializer.SaveSettings(settings);
+                ConstraintSerializer.SaveSettings(Settings);
 
             switch (state)
             {
@@ -175,15 +184,67 @@ namespace Eliza.ConstraintEditor
         }
         #endregion
 
+        private bool IsValidArmature(ArmatureData aramature, out ConstraintEditorError error)
+        {
+            error = new ConstraintEditorError();
+
+            if (aramature is null)
+            {
+                error.message = "Armature data is null!";
+                error.code = EditorErrorCode.ArmatureNull;
+                return false;
+            }
+            if (aramature.parentObject is null)
+            {
+                error.message = "Armature parent object is missing!";
+                error.code = EditorErrorCode.ParentNull;
+                return false;
+            }
+            if (aramature.armatureTransform is null)
+            {
+                error.message = "Armature transorm is missing!";
+                error.code = EditorErrorCode.TransformNull;
+                return false;
+            }
+
+            foreach (var cData in aramature.allConstraintData)
+                if (cData.Constraint is null)
+                {
+                    error.message = $"Transform {cData.PathFromArmature} is missing a constraint!";
+                    error.code = EditorErrorCode.ConstraintNull;
+                    return false;
+                }
+
+            error.message = "Armature is valid";
+            error.code = EditorErrorCode.NoError;
+            return true;
+        }
+
         #region Standard State
         private void DrawStateStandard()
         {
             EditorGUILayout.Space(10);
 
-            if (currentArmature == null)
+            if (!IsValidArmature(currentArmature, out var errorData))
             {
                 EditorUtility.DrawTitle("Select an object with an attached armature");
-                return;
+
+                switch (errorData.code)
+                {
+                    // Should only be thrown when nothing is selected, an expected case.
+                    case EditorErrorCode.ArmatureNull:
+                        if (Settings.VerboseConsoleErrors)
+                            Debug.LogError(errorData.message);
+                        return;
+                    case EditorErrorCode.ParentNull:
+                    case EditorErrorCode.TransformNull:
+                    case EditorErrorCode.ConstraintNull:
+                        Debug.LogError(errorData.message);
+                        return;
+                    default:
+                        Debug.LogError($"Uncaught editor error: {errorData.code}\nMessage: {errorData.message}");
+                        return;
+                }
             }
 
             using (new GUILayout.VerticalScope())
@@ -196,7 +257,7 @@ namespace Eliza.ConstraintEditor
                     currentArmature.SaveToTemplate(templateName);
                 if (GUILayout.Button($"Load {templateName}.json"))
                 {
-                    if (settings.DestroyConstraintsOnLoad)
+                    if (Settings.DestroyConstraintsOnLoad)
                         currentArmature.RemoveAllConstraints();
                     currentArmature.LoadFromTemplate(templateName);
                 }
@@ -366,20 +427,33 @@ namespace Eliza.ConstraintEditor
             EditorGUILayout.Space(10);
             EditorUtility.DrawTitle("Editor Settings");
 
+            var settings = Settings;
             using (new EditorGUILayout.VerticalScope())
             {
-                settings.EnableDebugMode = EditorGUILayout.Toggle(
-                    new GUIContent(
-                        "Debug Mode",
-                        "Reveals internal developer settings. It will do nothing for you. It's for me."),
-                    settings.EnableDebugMode);
+                DrawToggleSetting(ref settings.EnableDebugMode,
+                    "Debug Mode",
+                    "Reveals internal developer settings. It will do nothing for you. It's for me.");
+                DrawToggleSetting(ref settings.DestroyConstraintsOnLoad,
+                    "Destroy Constraints On Load",
+                    "If enabled, loading a template will destroy any existing constraints.");
+                DrawToggleSetting(ref settings.LoadRotationData,
+                    "Load Rotations",
+                    "If enabled, constraint rotation data will be loaded from templates. HIGHLY RECCOMENDED to leave off.");
 
-                settings.DestroyConstraintsOnLoad = EditorGUILayout.Toggle(
-                    new GUIContent(
-                        "Destroy Constraints on Load",
-                        "If enabled, loading a template will destroy any existing constraints."),
-                    settings.DestroyConstraintsOnLoad);
+                if (Settings.EnableDebugMode)
+                {
+                    EditorGUILayout.Space(10);
+                    EditorUtility.DrawTitle("Developer Settings");
+
+                    DrawToggleSetting(ref settings.VerboseConsoleErrors,
+                        "Enable All Console Errors",
+                        "Turning this on will print all errors caught by the editor. Even ones that dont matter.");
+                }
             }
+        }
+        private void DrawToggleSetting(ref bool value, string label, string tooltip)
+        {
+            value = EditorGUILayout.Toggle(new GUIContent(label, tooltip), value, GUILayout.ExpandWidth(true));
         }
         #endregion
     }
@@ -463,7 +537,9 @@ namespace Eliza.ConstraintEditor
 
         public void RemoveConstraint(int index)
         {
-
+            ConstraintMetaData cData = allConstraintData[index];
+            GameObject.DestroyImmediate(cData.Constraint);
+            allConstraintData.RemoveAt(index);
         }
         public void RemoveAllConstraints()
         {
@@ -487,6 +563,19 @@ namespace Eliza.ConstraintEditor
     public class ConstraintEditorSettings
     {
         public bool EnableDebugMode = false;
-        public bool DestroyConstraintsOnLoad = false;
+        public bool DestroyConstraintsOnLoad = true;
+        public bool LoadRotationData = false;
+
+        #region Developer Settings
+        public bool VerboseConsoleErrors = false;
+        #endregion
+    }
+
+    public class ConstraintEditorError
+    {
+        public EditorErrorCode code;
+        public string message;
+
+
     }
 }

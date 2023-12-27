@@ -53,7 +53,7 @@ namespace Eliza.ConstraintEditor
         }
     }
 
-    public class ConstraintSerializer
+    public static class ConstraintSerializer
     {
         public static void SaveConstraintsAsTemplate(string templateName, List<ConstraintMetaData> constraintData)
         {
@@ -108,7 +108,7 @@ namespace Eliza.ConstraintEditor
                     if (!transform.gameObject.TryGetComponent<RotationConstraint>(out constraint))
                         constraint = transform.gameObject.AddComponent<RotationConstraint>();
 
-                    constraint.constraintActive = tData.IsActive;
+                    //constraint.constraintActive = tData.IsActive;
                     constraint.weight = tData.Weight;
                     constraint.locked = tData.IsLocked;
                     constraint.rotationAxis = Axis.None;
@@ -120,8 +120,11 @@ namespace Eliza.ConstraintEditor
                     if (tData.FreezeZ)
                         constraint.rotationAxis |= Axis.Z;
 
-                    constraint.rotationAtRest = tData.RotationAtRest;
-                    constraint.rotationOffset = tData.RotationOffset;
+                    if (ConstraintEditor.Settings.LoadRotationData)
+                    {
+                        constraint.rotationAtRest = tData.RotationAtRest;
+                        constraint.rotationOffset = tData.RotationOffset;
+                    }
 
                     foreach (var tSource in tData.Sources)
                     {
@@ -135,6 +138,8 @@ namespace Eliza.ConstraintEditor
                         }
                         else Debug.LogWarning($"Could not find source for {constraint.name}:\n{tSource.ArmaturePath}");
                     }
+
+                    constraint.constraintActive = tData.IsActive;
                 }
                 else Debug.LogWarning($"Could not find constraint target:\n{tData.ArmaturePath}");
             }
