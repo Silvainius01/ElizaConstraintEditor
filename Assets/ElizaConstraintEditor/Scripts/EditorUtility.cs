@@ -87,7 +87,7 @@ namespace Eliza.ConstraintEditor
 
                 controlRect.xMin += 15;
                 controlRect.width = 100;
-                value.y = EditorGUI.FloatField(controlRect, value.y);
+                value[i] = EditorGUI.FloatField(controlRect, value[i]);
             }
 
             return value;

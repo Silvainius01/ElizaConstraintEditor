@@ -124,7 +124,7 @@ namespace Eliza.ConstraintEditor
                 trueLable: "Hide Debug",
                 falseLable: "Show Debug"))
             {
-                using (new GUILayout.VerticalScope())
+                using (new GUILayout.VerticalScope("helpbox"))
                 {
                     DrawDebugInterface();
                 }
@@ -165,22 +165,26 @@ namespace Eliza.ConstraintEditor
             StringMod = EditorGUILayout.TextField("StringMod", StringMod);
             EditorGUILayout.Space(10);
 
-            //using (new GUILayout.HorizontalScope())
-            //{
-            //    Rect yesButtonRect = EditorGUILayout.GetControlRect();
-            //    Rect noButtonRect = EditorGUILayout.GetControlRect();
-            //    float center = yesButtonRect.max.x + (noButtonRect.min.x - yesButtonRect.max.x) / 2;
+            //DebugCenteredRectGroup();
+        }
+        void DebugCenteredRectGroup()
+        {
+            using (new GUILayout.HorizontalScope())
+            {
+                Rect yesButtonRect = EditorGUILayout.GetControlRect();
+                Rect noButtonRect = EditorGUILayout.GetControlRect();
+                float center = yesButtonRect.max.x + (noButtonRect.min.x - yesButtonRect.max.x) / 2;
 
-            //    yesButtonRect.xMin = center - 125;
-            //    noButtonRect.xMax = center + 125;
+                yesButtonRect.xMin = center - 125;
+                noButtonRect.xMax = center + 125;
 
-            //    GUI.Button(yesButtonRect, "Yes");
-            //    GUI.Button(noButtonRect, "No");
-            //}
+                GUI.Button(yesButtonRect, "Yes");
+                GUI.Button(noButtonRect, "No");
+            }
 
-            //var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(xMod, WidthMod, 5);
-            //for (int i = 0; i < rGroup.Length; ++i)
-            //    GUI.Button(rGroup[i], i.ToString());
+            var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(xMod, WidthMod, 5);
+            for (int i = 0; i < rGroup.Length; ++i)
+                GUI.Button(rGroup[i], i.ToString());
         }
         #endregion
 
@@ -208,7 +212,7 @@ namespace Eliza.ConstraintEditor
             }
 
             foreach (var cData in aramature.allConstraintData)
-                if (cData.Constraint is null)
+                if (cData.Constraint == null) // Why wont the pattern match `is null` work?
                 {
                     error.message = $"Transform {cData.PathFromArmature} is missing a constraint!";
                     error.code = EditorErrorCode.ConstraintNull;
@@ -557,25 +561,5 @@ namespace Eliza.ConstraintEditor
             ConstraintSerializer.LoadConstraintsFromTempalte(template, armatureTransform);
             RefreshConstraintData();
         }
-    }
-
-    [Serializable]
-    public class ConstraintEditorSettings
-    {
-        public bool EnableDebugMode = false;
-        public bool DestroyConstraintsOnLoad = true;
-        public bool LoadRotationData = false;
-
-        #region Developer Settings
-        public bool VerboseConsoleErrors = false;
-        #endregion
-    }
-
-    public class ConstraintEditorError
-    {
-        public EditorErrorCode code;
-        public string message;
-
-
     }
 }
