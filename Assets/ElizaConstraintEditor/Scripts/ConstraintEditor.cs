@@ -1,14 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Animations;
-using Unity.VisualScripting;
-using System.Security.Cryptography.X509Certificates;
-using Unity.Collections.LowLevel.Unsafe;
-using System.Runtime.CompilerServices;
-using Newtonsoft.Json.Bson;
 
 /*
  *  Made for Eliza (and whomever she shares this with) by Silvainius
@@ -29,19 +23,24 @@ using Newtonsoft.Json.Bson;
 
 namespace Eliza.ConstraintEditor
 {
+    public enum EditorState { Editor, Settings }
+    public enum ConstraintRemovalState { NotRemoving, UserConfirm, Removing }
+
     public class ConstraintEditor : EditorWindow
     {
-        enum EditorState { Editor, Settings }
-
         const string ArmatureName = "Armature";
 
         bool UserAddingSource = false;
         string templateName = "ShortStack";
         Vector2 scrollPos = Vector2.zero;
-        GameObject currentObject;
-        Transform currentArmature;
-        List<ConstraintMetaData> constraints = new List<ConstraintMetaData>();
         ConstraintEditorSettings settings = null;
+
+        int currentArmatureId;
+        ArmatureData currentArmature => trackedArmatures.ContainsKey(currentArmatureId)
+            ? trackedArmatures[currentArmatureId]
+            : null;
+        Dictionary<int, ArmatureData> trackedArmatures = new Dictionary<int, ArmatureData>();
+
 
         EditorState state = EditorState.Editor;
 
@@ -58,6 +57,7 @@ namespace Eliza.ConstraintEditor
             window.titleContent = new GUIContent("Constraint Editor" /*, icon*/);
 
             window.settings = ConstraintSerializer.LoadSettings();
+            window.antiAlias = 1; // Fixes getting spammed by an error.
         }
 
         private void OnSelectionChange()
@@ -91,22 +91,12 @@ namespace Eliza.ConstraintEditor
                 }
             }
 
-            // Dont reconstruct data if we are just moving around the armature.
-            //if (obj == currentObject && currentArmature == armature)
-            //    return;
-
-            currentObject = null;
-            constraints.Clear();
-
             if (armature is not null)
             {
-                currentObject = obj;
-                currentArmature = armature;
-                constraints.Clear();
-                var components = armature.GetComponentsInChildren<RotationConstraint>();
-
-                foreach (var constraint in components)
-                    constraints.Add(ConstraintMetaData.Generate(constraint));
+                int id = armature.gameObject.GetInstanceID();
+                if (!trackedArmatures.ContainsKey(id))
+                    trackedArmatures.Add(id, new ArmatureData(armature));
+                currentArmatureId = id;
             }
 
             Repaint();
@@ -190,7 +180,7 @@ namespace Eliza.ConstraintEditor
         {
             EditorGUILayout.Space(10);
 
-            if (currentObject == null)
+            if (currentArmature == null)
             {
                 EditorUtility.DrawTitle("Select an object with an attached armature");
                 return;
@@ -198,36 +188,30 @@ namespace Eliza.ConstraintEditor
 
             using (new GUILayout.VerticalScope())
             {
-                EditorUtility.DrawTitle($"{currentObject.name}/Armature");
+                EditorUtility.DrawTitle($"{currentArmature.parentObject.name}/Armature");
                 EditorGUILayout.Space(10);
 
                 EditorGUILayout.TextField("Template Name", templateName);
                 if (GUILayout.Button($"Save to {templateName}.json"))
-                    ConstraintSerializer.SaveConstraintsAsTemplate(templateName, constraints);
+                    currentArmature.SaveToTemplate(templateName);
                 if (GUILayout.Button($"Load {templateName}.json"))
                 {
                     if (settings.DestroyConstraintsOnLoad)
-                    {
-                        foreach (var cData in constraints)
-                            DestroyImmediate(cData.Constraint);
-                        constraints.Clear();
-                    }
-
-                    ConstraintSerializer.LoadConstraintsFromTempalte(templateName, currentArmature);
+                        currentArmature.RemoveAllConstraints();
+                    currentArmature.LoadFromTemplate(templateName);
                 }
 
                 EditorGUILayout.Space(10);
                 EditorGUILayout.LabelField("Current Constraints:");
                 EditorGUI.indentLevel += 1;
-                for (int i = 0; i < constraints.Count; ++i)
+
+                var allConstraintData = currentArmature.allConstraintData;
+                for (int i = 0; i < allConstraintData.Count; ++i)
                 {
                     // If this entry is being removed, kill it and move on.
-                    if (constraints[i].RemovingState > 1)
-                    {
-                        DestroyImmediate(constraints[i].Constraint);
-                        constraints.RemoveAt(i--);
-                    }
-                    else DrawConstraintFields(constraints[i]);
+                    if (allConstraintData[i].RemovingState == ConstraintRemovalState.Removing)
+                        currentArmature.RemoveConstraint(i--);
+                    else DrawConstraintFields(allConstraintData[i]);
                 }
 
                 if (!UserAddingSource)
@@ -244,9 +228,7 @@ namespace Eliza.ConstraintEditor
                         if (!obj.TryGetComponent<RotationConstraint>(out constraint))
                             constraint = obj.AddComponent<RotationConstraint>();
 
-                        var cData = ConstraintMetaData.Generate(constraint);
-                        cData.IsExpanded = true;
-                        constraints.Add(cData);
+                        currentArmature.AddConstraint(constraint);
                         UserAddingSource = false;
                     }
                 }
@@ -281,21 +263,22 @@ namespace Eliza.ConstraintEditor
                 {
                     EditorGUILayout.Space(10);
 
-                    if (cData.RemovingState == 1)
+                    if (cData.RemovingState == ConstraintRemovalState.UserConfirm)
                     {
                         // Extra spaces bc easier than figuring what BS the control rects are doing.
                         EditorGUILayout.LabelField("ARE YOU SURE?      ", EditorUtility.DefaultTitleStyle);
 
                         var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(2, 250, 5);
                         if (GUI.Button(rGroup[0], "Yes"))
-                            cData.RemovingState = 2;
+                            cData.RemovingState = ConstraintRemovalState.Removing;
                         if (GUI.Button(rGroup[1], "No"))
-                            cData.RemovingState = 0;
+                            cData.RemovingState = ConstraintRemovalState.NotRemoving;
                     }
                     else
                     {
-                        Rect deleteButtonRect = EditorUtility.GetCenteredControlRect(250);
-                        cData.RemovingState = GUI.Button(deleteButtonRect, "Remove Constraint") ? 1 : 0;
+                        cData.RemovingState = EditorUtility.CenteredButton("Remove Constraint", 250)
+                            ? ConstraintRemovalState.UserConfirm
+                            : ConstraintRemovalState.NotRemoving;
                     }
 
                     string activeButtonLabel = cData.Constraint.constraintActive
@@ -383,7 +366,7 @@ namespace Eliza.ConstraintEditor
             EditorGUILayout.Space(10);
             EditorUtility.DrawTitle("Editor Settings");
 
-            using(new EditorGUILayout.VerticalScope())
+            using (new EditorGUILayout.VerticalScope())
             {
                 settings.EnableDebugMode = EditorGUILayout.Toggle(
                     new GUIContent(
@@ -404,10 +387,10 @@ namespace Eliza.ConstraintEditor
     public class ConstraintMetaData
     {
         public bool IsExpanded;
-        public int RemovingState = 0;
         public string FullPath;
         public string[] SplitPath;
         public RotationConstraint Constraint;
+        public ConstraintRemovalState RemovingState = ConstraintRemovalState.NotRemoving;
 
         public string PathFromArmature
         {
@@ -444,6 +427,59 @@ namespace Eliza.ConstraintEditor
                 SplitPath = fullPath.Split('/'),
                 Constraint = constraint
             };
+        }
+    }
+
+    public class ArmatureData
+    {
+        public GameObject parentObject;
+        public Transform armatureTransform;
+        public List<ConstraintMetaData> allConstraintData = new List<ConstraintMetaData>();
+
+        public ArmatureData(Transform armatureTransform)
+        {
+            parentObject = armatureTransform.parent.gameObject;
+            this.armatureTransform = armatureTransform;
+            RefreshConstraintData();
+        }
+
+        public void RefreshConstraintData()
+        {
+            var rotationConstraints = armatureTransform.GetComponentsInChildren<RotationConstraint>();
+
+            allConstraintData.Clear();
+            allConstraintData.Capacity = rotationConstraints.Length;
+            foreach (var constraint in armatureTransform.GetComponentsInChildren<RotationConstraint>())
+                allConstraintData.Add(ConstraintMetaData.Generate(constraint));
+        }
+
+        public void AddConstraint(RotationConstraint constraint)
+        {
+            ConstraintMetaData cData = ConstraintMetaData.Generate(constraint);
+
+            cData.IsExpanded = true;
+            allConstraintData.Add(cData);
+        }
+
+        public void RemoveConstraint(int index)
+        {
+
+        }
+        public void RemoveAllConstraints()
+        {
+            foreach (var cData in allConstraintData)
+                UnityEngine.Object.DestroyImmediate(cData.Constraint);
+            allConstraintData.Clear();
+        }
+
+        public void SaveToTemplate(string template)
+        {
+            ConstraintSerializer.SaveConstraintsAsTemplate(template, allConstraintData);
+        }
+        public void LoadFromTemplate(string template)
+        {
+            ConstraintSerializer.LoadConstraintsFromTempalte(template, armatureTransform);
+            RefreshConstraintData();
         }
     }
 
