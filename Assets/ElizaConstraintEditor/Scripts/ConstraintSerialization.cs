@@ -179,5 +179,40 @@ namespace Eliza.ConstraintEditor
                 Weight = source.weight
             };
         }
+
+        public static void SaveSettings(ConstraintEditorSettings settings)
+        {
+            string path = $"{Application.dataPath}/ElizaConstraintEditor/settings.json";
+            string templateJson = JsonUtility.ToJson(settings);
+
+            using (var stream = new FileStream(path, FileMode.Create, FileAccess.ReadWrite))
+            {
+                using (var writer = new StreamWriter(stream))
+                {
+                    writer.Write(templateJson);
+                }
+            }
+        }
+        public static ConstraintEditorSettings LoadSettings()
+        {
+            string json = string.Empty;
+            string path = $"{Application.dataPath}/ElizaConstraintEditor/settings.json";
+
+            if (!File.Exists(path))
+            {
+                Debug.LogError($"No settings exist at {path}!");
+                return new ConstraintEditorSettings();
+            }
+
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read))
+            {
+                using (var reader = new StreamReader(stream))
+                {
+                    json = reader.ReadToEnd();
+                }
+            }
+
+            return (ConstraintEditorSettings)JsonUtility.FromJson(json, typeof(ConstraintEditorSettings));
+        }
     }
 }

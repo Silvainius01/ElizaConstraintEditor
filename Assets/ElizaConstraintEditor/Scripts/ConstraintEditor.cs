@@ -41,7 +41,7 @@ namespace Eliza.ConstraintEditor
         GameObject currentObject;
         Transform currentArmature;
         List<ConstraintMetaData> constraints = new List<ConstraintMetaData>();
-        ConstraintEditorSettings settings = LoadSettings();
+        ConstraintEditorSettings settings = null;
 
         EditorState state = EditorState.Editor;
 
@@ -56,6 +56,8 @@ namespace Eliza.ConstraintEditor
             //string iconPath = "Assets/ElizaConstraintEditor/ElizaCrystal_icon_16x16.png";
             //Texture icon = AssetDatabase.LoadAssetAtPath(iconPath, typeof(Texture)) as Texture;
             window.titleContent = new GUIContent("Constraint Editor" /*, icon*/);
+
+            window.settings = ConstraintSerializer.LoadSettings();
         }
 
         private void OnSelectionChange()
@@ -136,7 +138,7 @@ namespace Eliza.ConstraintEditor
                 state = EditorState.Editor;
 
             if (prevState != state && prevState == EditorState.Settings)
-                SaveSettings();
+                ConstraintSerializer.SaveSettings(settings);
 
             switch (state)
             {
@@ -234,7 +236,7 @@ namespace Eliza.ConstraintEditor
                 {
                     GameObject obj = EditorGUILayout.ObjectField("Target Object", null, typeof(GameObject), true) as GameObject;
 
-                    if (GUI.Button(EditorUtility.GetCenteredControlRect(250), "Cancel"))
+                    if (EditorUtility.CenteredButton("Cancel", 250))
                         UserAddingSource = false;
                     else if (obj is not null)
                     {
@@ -299,10 +301,8 @@ namespace Eliza.ConstraintEditor
                     string activeButtonLabel = cData.Constraint.constraintActive
                         ? "Constraint ON"
                         : "Constraint OFF";
-                    Rect activeButtonRect = EditorUtility.GetCenteredControlRect(250);
-                    if (GUI.Button(activeButtonRect, activeButtonLabel))
+                    if (EditorUtility.CenteredButton(activeButtonLabel, 250))
                         cData.Constraint.constraintActive = !cData.Constraint.constraintActive;
-
 
                     cData.Constraint.weight = EditorGUILayout.Slider("Weight", cData.Constraint.weight, 0.0f, 1.0f);
                     cData.Constraint.locked = EditorGUILayout.Toggle("Lock", cData.Constraint.locked);
@@ -397,40 +397,6 @@ namespace Eliza.ConstraintEditor
                         "If enabled, loading a template will destroy any existing constraints."),
                     settings.DestroyConstraintsOnLoad);
             }
-        }
-        private void SaveSettings()
-        {
-            string path = $"{Application.dataPath}/ElizaConstraintEditor/settings.json";
-            string templateJson = JsonUtility.ToJson(settings);
-
-            using (var stream = new FileStream(path, FileMode.Create, FileAccess.ReadWrite))
-            {
-                using (var writer = new StreamWriter(stream))
-                {
-                    writer.Write(templateJson);
-                }
-            }
-        }
-        private static ConstraintEditorSettings LoadSettings()
-        {
-            string json = string.Empty;
-            string path = $"{Application.dataPath}/ElizaConstraintEditor/settings.json";
-
-            if (!File.Exists(path))
-            {
-                Debug.LogError($"No settings exist at {path}!");
-                return new ConstraintEditorSettings();
-            }
-
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read))
-            {
-                using (var reader = new StreamReader(stream))
-                {
-                    json = reader.ReadToEnd();
-                }
-            }
-
-            return (ConstraintEditorSettings)JsonUtility.FromJson(json, typeof(ConstraintEditorSettings));  
         }
         #endregion
     }

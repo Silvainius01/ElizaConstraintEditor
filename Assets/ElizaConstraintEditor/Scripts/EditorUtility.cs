@@ -101,6 +101,14 @@ namespace Eliza.ConstraintEditor
 
             return value;
         }
+        public static bool ToggleButtonCentered(ref bool value, float width, string trueLable, string falseLable)
+        {
+            if(value)
+                value = !CenteredButton(trueLable, width);
+            else value = CenteredButton(falseLable, width);
+
+            return value;
+        }
 
         public static bool CenteredButton(string label, float width)
         {
