@@ -157,6 +157,8 @@ namespace Eliza.ConstraintEditor
         int WidthMod = 80;
         int xMod = 0;
         string StringMod = string.Empty;
+        Transform targetTransform;
+        Transform sourceTransform;
 
         void DrawDebugInterface()
         {
@@ -165,6 +167,15 @@ namespace Eliza.ConstraintEditor
             xMod = EditorGUILayout.IntField("xMod", xMod);
             StringMod = EditorGUILayout.TextField("StringMod", StringMod);
             EditorGUILayout.Space(5);
+
+            targetTransform = EditorGUILayout.ObjectField("Target", targetTransform, typeof(Transform), true) as Transform;
+            sourceTransform = EditorGUILayout.ObjectField("Source", sourceTransform, typeof(Transform), true) as Transform;
+
+            Quaternion r = targetTransform.localRotation;
+            Quaternion s = sourceTransform.localRotation;
+            Vector3 offset = Quaternion.Inverse(Quaternion.Inverse(r)*s).eulerAngles;
+
+            EditorGUILayout.Vector3Field("Offset", offset);
 
             //DebugCenteredRectGroup();
 
