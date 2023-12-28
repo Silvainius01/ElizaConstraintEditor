@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
+using UnityEngine.Animations;
 
 namespace Eliza.ConstraintEditor
 {
@@ -92,10 +93,39 @@ namespace Eliza.ConstraintEditor
 
             return value;
         }
+        public static Axis DrawCustomAxis(string lable, Axis value, float width = 80)
+        {
+            Axis retval = Axis.None;
+            bool[] values = new bool[3] { value.HasFlag(Axis.X), value.HasFlag(Axis.Y), value.HasFlag(Axis.Z) };
+            string[] labels = new string[3] { "X", "Y", "Z" };
+
+            using (new GUILayout.HorizontalScope())
+            {
+                Rect controlRect = EditorGUILayout.GetControlRect();
+                EditorGUI.LabelField(controlRect, "Freeze Rotation");
+
+                controlRect.xMin += 125 - width;
+                for (int i = 0; i < 3; ++i)
+                {
+                    controlRect.xMin += width;
+                    controlRect.width = 40;
+                    EditorGUI.LabelField(controlRect, labels[i]);
+
+                    controlRect.xMin += 15;
+                    controlRect.width = 50;
+                    EditorGUI.Toggle(controlRect, values[i]);
+                }
+            }
+
+            if (values[0]) retval |= Axis.X;
+            if (values[1]) retval |= Axis.Y;
+            if (values[2]) retval |= Axis.Z;
+            return retval;
+        }
 
         public static bool ToggleButton(Rect rect, ref bool value, string trueLable, string falseLable)
         {
-            if(value)
+            if (value)
                 value = !GUI.Button(rect, trueLable);
             else value = GUI.Button(rect, falseLable);
 
@@ -103,7 +133,7 @@ namespace Eliza.ConstraintEditor
         }
         public static bool ToggleButtonCentered(ref bool value, float width, string trueLable, string falseLable)
         {
-            if(value)
+            if (value)
                 value = !CenteredButton(trueLable, width);
             else value = CenteredButton(falseLable, width);
 

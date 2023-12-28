@@ -120,11 +120,8 @@ namespace Eliza.ConstraintEditor
                     if (tData.FreezeZ)
                         constraint.rotationAxis |= Axis.Z;
 
-                    if (ConstraintEditor.Settings.LoadRotationData)
-                    {
-                        constraint.rotationAtRest = tData.RotationAtRest;
-                        constraint.rotationOffset = tData.RotationOffset;
-                    }
+                    constraint.rotationAtRest = tData.RotationAtRest;
+                    constraint.rotationOffset = tData.RotationOffset;
 
                     foreach (var tSource in tData.Sources)
                     {

@@ -128,6 +128,7 @@ namespace Eliza.ConstraintEditor
                 {
                     DrawDebugInterface();
                 }
+                EditorGUILayout.Space(5);
             }
 
             EditorState prevState = state;
@@ -163,9 +164,15 @@ namespace Eliza.ConstraintEditor
             WidthMod = EditorGUILayout.IntField("WidthMod", WidthMod);
             xMod = EditorGUILayout.IntField("xMod", xMod);
             StringMod = EditorGUILayout.TextField("StringMod", StringMod);
-            EditorGUILayout.Space(10);
+            EditorGUILayout.Space(5);
 
             //DebugCenteredRectGroup();
+
+            if (EditorUtility.CenteredButton("Refresh Armature Data", 250))
+            {
+                if (currentArmature is not null)
+                    currentArmature.RefreshConstraintData();
+            }
         }
         void DebugCenteredRectGroup()
         {
@@ -346,21 +353,49 @@ namespace Eliza.ConstraintEditor
                             : ConstraintRemovalState.NotRemoving;
                     }
 
-                    string activeButtonLabel = cData.Constraint.constraintActive
-                        ? "Constraint ON"
-                        : "Constraint OFF";
-                    if (EditorUtility.CenteredButton(activeButtonLabel, 250))
-                        cData.Constraint.constraintActive = !cData.Constraint.constraintActive;
-
-                    cData.Constraint.weight = EditorGUILayout.Slider("Weight", cData.Constraint.weight, 0.0f, 1.0f);
-                    cData.Constraint.locked = EditorGUILayout.Toggle("Lock", cData.Constraint.locked);
-
-                    if (cData.Constraint.locked)
-                        cData.Constraint.rotationAxis = (Axis)EditorGUILayout.EnumFlagsField("Freeze Axis", cData.Constraint.rotationAxis);
+                    if (Settings.AdvancedMode)
+                    {
+                        using (new GUILayout.VerticalScope())
+                        {
+                            cData.Constraint.locked = EditorGUILayout.Toggle("Locked", cData.Constraint.locked);
+                            cData.Constraint.constraintActive = EditorGUILayout.Toggle("Active", cData.Constraint.constraintActive);
+                        }
+                    }
                     else
                     {
+                        string activeButtonLabel = cData.Constraint.constraintActive
+                            ? "Constraint ON"
+                            : "Constraint OFF";
+                        if (EditorUtility.CenteredButton(activeButtonLabel, 250))
+                        {
+                            bool active = !cData.Constraint.constraintActive;
+                            cData.Constraint.constraintActive = active;
+                            cData.Constraint.locked = active;
+                        }
+                    }
+
+                    cData.Constraint.weight = EditorGUILayout.Slider("Weight", cData.Constraint.weight, 0.0f, 1.0f);
+                    //cData.Constraint.locked = EditorGUILayout.Toggle("Lock", cData.Constraint.locked);
+
+                    if (Settings.AdvancedMode)
+                    {
+                        GUI.enabled = cData.Constraint.locked;
+                        cData.Constraint.transform.localEulerAngles = EditorUtility.DrawCustomVector3("Object Rotation", cData.Constraint.transform.localEulerAngles); ;
                         cData.Constraint.rotationAtRest = EditorUtility.DrawCustomVector3("Rotation at Rest", cData.Constraint.rotationAtRest);
                         cData.Constraint.rotationOffset = EditorUtility.DrawCustomVector3("Rotation Offset", cData.Constraint.rotationOffset);
+                        GUI.enabled = true;
+
+                        cData.Constraint.rotationAxis = EditorUtility.DrawCustomAxis("Freeze Rotation", cData.Constraint.rotationAxis);
+                    }
+                    else
+                    {
+                        GUI.enabled = !cData.Constraint.locked;
+                        Vector3 rotation = EditorUtility.DrawCustomVector3("Rotation at Rest", cData.Constraint.rotationAtRest);
+
+                        cData.Constraint.rotationAtRest = rotation;
+                        cData.Constraint.transform.localEulerAngles = rotation;
+                        cData.Constraint.rotationAxis = EditorUtility.DrawCustomAxis("Freeze Rotation", cData.Constraint.rotationAxis);
+                        GUI.enabled = true;
                     }
 
                     EditorGUILayout.LabelField("Sources:");
@@ -440,9 +475,9 @@ namespace Eliza.ConstraintEditor
                 DrawToggleSetting(ref settings.DestroyConstraintsOnLoad,
                     "Destroy Constraints On Load",
                     "If enabled, loading a template will destroy any existing constraints.");
-                DrawToggleSetting(ref settings.LoadRotationData,
-                    "Load Rotations",
-                    "If enabled, constraint rotation data will be loaded from templates. HIGHLY RECCOMENDED to leave off.");
+                DrawToggleSetting(ref settings.AdvancedMode,
+                    "Advanced Mode",
+                    "If enabled, the editor removes some protections and allows you to edit constraint data more directly.\nReccomendation is to leave this off.");
 
                 if (Settings.EnableDebugMode)
                 {

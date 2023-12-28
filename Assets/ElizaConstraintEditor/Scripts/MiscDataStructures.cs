@@ -10,7 +10,7 @@ namespace Eliza.ConstraintEditor
     {
         public bool EnableDebugMode = false;
         public bool DestroyConstraintsOnLoad = true;
-        public bool LoadRotationData = false;
+        public bool AdvancedMode = false;
 
         #region Developer Settings
         public bool VerboseConsoleErrors = false;
