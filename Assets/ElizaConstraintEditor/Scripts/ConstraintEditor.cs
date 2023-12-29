@@ -27,7 +27,6 @@ using System.Reflection;
 /*
  *  TODO:
  *      - Add button to auto select specific constraints. I cant replace everything the inspector has.
- *      - Add better protections, offset can get out of sync in basic mode. Recalc everytime a source is added?
  */
 
 namespace Eliza.ConstraintEditor
@@ -446,13 +445,7 @@ namespace Eliza.ConstraintEditor
                         GUI.enabled = true;
 
                         if (EditorUtility.CenteredButton("Recalculate Offset", 250))
-                        {
-                            bool locked = cData.Constraint.locked;
-                            bool active = cData.Constraint.constraintActive;
-                            cData.Constraint.ActivateAndPreserveOffset();
-                            cData.Constraint.constraintActive = active;
-                            cData.Constraint.locked = locked;
-                        }
+                            cData.Constraint.RecalculateOffset();
 
                         cData.Constraint.rotationAxis = EditorUtility.DrawCustomAxis("Freeze Rotation", cData.Constraint.rotationAxis);
                     }
@@ -503,7 +496,10 @@ namespace Eliza.ConstraintEditor
                                 Transform newSource = EditorGUI.ObjectField(targetFieldRect, source.sourceTransform, typeof(Transform), true) as Transform;
 
                                 if (newWeight != source.weight || newSource != source.sourceTransform)
+                                {
                                     cData.Constraint.SetSource(i, new ConstraintSource() { sourceTransform = newSource, weight = newWeight });
+                                    cData.Constraint.RecalculateOffset();
+                                }
 
                                 weightFieldMinX = weightFieldRect.xMin;
                             }
@@ -518,7 +514,10 @@ namespace Eliza.ConstraintEditor
                         Rect sourceButtonRect = EditorGUILayout.GetControlRect();
                         sourceButtonRect.max = new Vector2(weightFieldRect.max.x, sourceButtonRect.max.y);
                         if (GUI.Button(EditorGUI.IndentedRect(sourceButtonRect), "Add Source"))
+                        {
                             cData.Constraint.AddSource(new ConstraintSource() { sourceTransform = null, weight = 1.0f });
+                            cData.Constraint.RecalculateOffset();
+                        }
                     }
                     EditorGUI.indentLevel -= 1;
                 }

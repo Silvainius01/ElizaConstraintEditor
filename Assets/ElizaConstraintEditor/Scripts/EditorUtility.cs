@@ -165,5 +165,13 @@ namespace Eliza.ConstraintEditor
         
         public static void ActivateAndPreserveOffset(this RotationConstraint constraint)
             => ConstraintActivateMethod.Invoke(constraint, null);
+        public static void RecalculateOffset(this RotationConstraint constraint)
+        {
+            bool active = constraint.constraintActive;
+            bool locked = constraint.locked;
+            constraint.ActivateAndPreserveOffset();
+            constraint.constraintActive = active;
+            constraint.locked = locked;
+        }
     }
 }
