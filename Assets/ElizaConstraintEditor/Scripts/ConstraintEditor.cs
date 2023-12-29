@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Animations;
+using System.Linq;
+using JetBrains.Annotations;
 
 /*
  *  Made for Eliza (and whomever she shares this with) by Silvainius
@@ -158,7 +160,7 @@ namespace Eliza.ConstraintEditor
         int xMod = 0;
         string StringMod = string.Empty;
         Transform targetTransform;
-        Transform sourceTransform;
+        List<Transform> sources = new List<Transform>();
 
         void DrawDebugInterface()
         {
@@ -168,16 +170,8 @@ namespace Eliza.ConstraintEditor
             StringMod = EditorGUILayout.TextField("StringMod", StringMod);
             EditorGUILayout.Space(5);
 
-            targetTransform = EditorGUILayout.ObjectField("Target", targetTransform, typeof(Transform), true) as Transform;
-            sourceTransform = EditorGUILayout.ObjectField("Source", sourceTransform, typeof(Transform), true) as Transform;
-
-            Quaternion r = targetTransform.localRotation;
-            Quaternion s = sourceTransform.localRotation;
-            Vector3 offset = Quaternion.Inverse(Quaternion.Inverse(r)*s).eulerAngles;
-
-            EditorGUILayout.Vector3Field("Offset", offset);
-
             //DebugCenteredRectGroup();
+            DebugRotationConstraintOffset();
 
             if (EditorUtility.CenteredButton("Refresh Armature Data", 250))
             {
@@ -203,6 +197,49 @@ namespace Eliza.ConstraintEditor
             var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(xMod, WidthMod, 5);
             for (int i = 0; i < rGroup.Length; ++i)
                 GUI.Button(rGroup[i], i.ToString());
+        }
+        void DebugRotationConstraintOffset()
+        {
+            targetTransform = EditorGUILayout.ObjectField("Target", targetTransform, typeof(Transform), true) as Transform;
+
+            EditorGUILayout.LabelField("Additional Sources:");
+
+            EditorGUI.indentLevel += 1;
+            Transform t = EditorGUILayout.ObjectField("Add: ", null, typeof(Transform), true) as Transform;
+            if (t != null) sources.Add(t);
+
+            for (int i = 0; i < sources.Count; ++i)
+            {
+                using (new GUILayout.HorizontalScope())
+                {
+                    sources[i] = EditorGUILayout.ObjectField(sources[i], typeof(Transform), true) as Transform;
+                    if (GUILayout.Button("Remove", GUILayout.Width(70)))
+                        sources.RemoveAt(i--);
+                }
+            }
+
+            EditorGUI.indentLevel -= 1;
+
+            if (targetTransform is not null && sources.Any())
+            {
+                Quaternion offset = targetTransform.rotation;
+
+                //EditorGUILayout.Vector3Field("Offset Angles", offset.eulerAngles);
+
+                for (int i = 0; i < sources.Count; ++i)
+                    offset = Quaternion.Inverse(Quaternion.Inverse(offset) * sources[i].localRotation);
+                //offset = Quaternion.Inverse(offset);
+
+                EditorGUILayout.Vector4Field("Offset Quaternion", offset.ToVector4());
+
+                if (currentArmature is not null && currentArmature.allConstraintData.Any())
+                {
+                    var constraintOffset = currentArmature.allConstraintData[0].Constraint.rotationOffset;
+                    Quaternion fromConstraint = Quaternion.Euler(constraintOffset);
+                    //EditorGUILayout.Vector3Field("Constraint Angles", constraintOffset);
+                    EditorGUILayout.Vector4Field("Constraint Quaternion", fromConstraint.ToVector4());
+                }
+            }
         }
         #endregion
 
