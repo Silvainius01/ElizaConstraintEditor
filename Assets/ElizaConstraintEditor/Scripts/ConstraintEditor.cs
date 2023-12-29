@@ -24,6 +24,12 @@ using System.Reflection;
  *      
  */
 
+/*
+ *  TODO:
+ *      - Add button to auto select specific constraints. I cant replace everything the inspector has.
+ *      - Add better protections, offset can get out of sync in basic mode. Recalc everytime a source is added?
+ */
+
 namespace Eliza.ConstraintEditor
 {
     public enum EditorState { Editor, Settings }
@@ -53,7 +59,7 @@ namespace Eliza.ConstraintEditor
             ? trackedArmatures[currentArmatureId]
             : null;
         Dictionary<int, ArmatureData> trackedArmatures = new Dictionary<int, ArmatureData>();
-        
+
         EditorState state = EditorState.Editor;
 
 
@@ -86,7 +92,7 @@ namespace Eliza.ConstraintEditor
                     obj = armature.parent.gameObject;
                 }
                 // If we dont find an armature below us
-                else if (!EditorUtility.TryFindChild(obj.transform, ArmatureName, out armature))
+                else if (!obj.transform.TryFindChild(ArmatureName, out armature))
                 {
                     // Look for an armature above us
                     Transform p = obj.transform.parent;
@@ -279,10 +285,6 @@ namespace Eliza.ConstraintEditor
             error.code = EditorErrorCode.NoError;
             return true;
         }
-        private void ActivateConstraint(RotationConstraint constraint)
-        {
-
-        }
 
         #region Standard State
         private void DrawStateStandard()
@@ -410,21 +412,26 @@ namespace Eliza.ConstraintEditor
                     {
                         using (new GUILayout.VerticalScope())
                         {
-                            cData.Constraint.locked = EditorGUILayout.Toggle("Locked", cData.Constraint.locked);
                             cData.Constraint.constraintActive = EditorGUILayout.Toggle("Active", cData.Constraint.constraintActive);
+                            cData.Constraint.locked = EditorGUILayout.Toggle("Locked", cData.Constraint.locked);
+
+                            bool showButton = !(cData.Constraint.locked && cData.Constraint.constraintActive);
+                            if (showButton && EditorUtility.CenteredButton("Activate and Lock", 250))
+                                cData.Constraint.ActivateAndPreserveOffset();
                         }
                     }
                     else
                     {
-                        string activeButtonLabel = cData.Constraint.constraintActive
-                            ? "Constraint ON"
-                            : "Constraint OFF";
-                        if (EditorUtility.CenteredButton(activeButtonLabel, 250))
+                        if (cData.Constraint.constraintActive)
                         {
-                            bool active = !cData.Constraint.constraintActive;
-                            cData.Constraint.constraintActive = active;
-                            cData.Constraint.locked = active;
+                            if (EditorUtility.CenteredButton("Constraint ON", 250))
+                            {
+                                cData.Constraint.locked = false;
+                                cData.Constraint.constraintActive = false;
+                            }
                         }
+                        else if (EditorUtility.CenteredButton("Constraint OFF", 250))
+                            cData.Constraint.ActivateAndPreserveOffset();
                     }
 
                     cData.Constraint.weight = EditorGUILayout.Slider("Weight", cData.Constraint.weight, 0.0f, 1.0f);
@@ -432,11 +439,20 @@ namespace Eliza.ConstraintEditor
 
                     if (Settings.AdvancedMode)
                     {
-                        GUI.enabled = cData.Constraint.locked;
-                        cData.Constraint.transform.localEulerAngles = EditorUtility.DrawCustomVector3("Object Rotation", cData.Constraint.transform.localEulerAngles); ;
+                        GUI.enabled = !cData.Constraint.locked;
+                        //cData.Constraint.transform.localEulerAngles = EditorUtility.DrawCustomVector3("Object Rotation", cData.Constraint.transform.localEulerAngles); ;
                         cData.Constraint.rotationAtRest = EditorUtility.DrawCustomVector3("Rotation at Rest", cData.Constraint.rotationAtRest);
                         cData.Constraint.rotationOffset = EditorUtility.DrawCustomVector3("Rotation Offset", cData.Constraint.rotationOffset);
                         GUI.enabled = true;
+
+                        if (EditorUtility.CenteredButton("Recalculate Offset", 250))
+                        {
+                            bool locked = cData.Constraint.locked;
+                            bool active = cData.Constraint.constraintActive;
+                            cData.Constraint.ActivateAndPreserveOffset();
+                            cData.Constraint.constraintActive = active;
+                            cData.Constraint.locked = locked;
+                        }
 
                         cData.Constraint.rotationAxis = EditorUtility.DrawCustomAxis("Freeze Rotation", cData.Constraint.rotationAxis);
                     }

@@ -102,7 +102,7 @@ namespace Eliza.ConstraintEditor
             var template = (ElizaConstraintTemplate)JsonUtility.FromJson(templateJson, typeof(ElizaConstraintTemplate));
             foreach (var tData in template.Constraints)
             {
-                if (EditorUtility.TryFindChild(currentArmature, tData.ArmaturePath, out Transform transform))
+                if (currentArmature.TryFindChild(tData.ArmaturePath, out Transform transform))
                 {
                     RotationConstraint constraint;
                     if (!transform.gameObject.TryGetComponent<RotationConstraint>(out constraint))
@@ -125,7 +125,7 @@ namespace Eliza.ConstraintEditor
 
                     foreach (var tSource in tData.Sources)
                     {
-                        if (EditorUtility.TryFindChild(currentArmature, tSource.ArmaturePath, out Transform sourceTransform))
+                        if (currentArmature.TryFindChild(tSource.ArmaturePath, out Transform sourceTransform))
                         {
                             constraint.AddSource(new ConstraintSource()
                             {
