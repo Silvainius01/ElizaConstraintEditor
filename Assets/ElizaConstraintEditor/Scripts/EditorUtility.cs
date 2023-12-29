@@ -1,16 +1,19 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Animations;
+using UnityEngine.WSA;
 
 namespace Eliza.ConstraintEditor
 {
     public static class EditorUtility
     {
         public static readonly GUIStyle DefaultTitleStyle = new GUIStyle("boldLabel") { alignment = TextAnchor.MiddleCenter };
-
+      
         // I straight up stole this title layout from Dreadrith
         // https://github.com/Dreadrith/Unity-Animation-Hierarchy-Editor/blob/master/AnimationHierarchyEditor.cs#L260-L265
         public static void DrawTitle(string title) => DrawTitle(title, DefaultTitleStyle);
@@ -18,12 +21,6 @@ namespace Eliza.ConstraintEditor
         {
             using (new GUILayout.HorizontalScope("in bigtitle"))
                 GUILayout.Label(title, labelStyle);
-        }
-
-        public static bool TryFindChild(this Transform t, string name, out Transform result)
-        {
-            result = t.Find(name);
-            return result != null;
         }
 
         public static Rect GetCenteredControlRect(float width)
@@ -139,7 +136,6 @@ namespace Eliza.ConstraintEditor
 
             return value;
         }
-
         public static bool CenteredButton(string label, float width)
         {
             return GUI.Button(GetCenteredControlRect(width), label);
@@ -149,5 +145,24 @@ namespace Eliza.ConstraintEditor
         {
             return new Vector4(q.x,q.y, q.z,q.w);
         }
+    }
+
+    public static class TransformExtensions
+    {
+        public static bool TryFindChild(this Transform t, string name, out Transform result)
+        {
+            result = t.Find(name);
+            return result != null;
+        }
+    }
+
+    public static class RotationConstraintExtensions
+    {
+        // Hey Unity, can you actually fking expose this method please? Thanks :pray:
+        private static readonly MethodInfo ConstraintActivateMethod =
+            typeof(RotationConstraint).GetMethod("ActivateAndPreserveOffset", BindingFlags.NonPublic | BindingFlags.Instance);
+        
+        public static void ActivateAndPreserveOffset(this RotationConstraint constraint)
+            => ConstraintActivateMethod.Invoke(constraint, null);
     }
 }

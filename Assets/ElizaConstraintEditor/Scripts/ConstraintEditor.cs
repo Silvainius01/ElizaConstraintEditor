@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEngine.Animations;
 using System.Linq;
 using JetBrains.Annotations;
+using System.Reflection;
 
 /*
  *  Made for Eliza (and whomever she shares this with) by Silvainius
@@ -20,7 +21,7 @@ using JetBrains.Annotations;
  *  
  *  Some resources on custom editor icons (in case I forget):
  *      - https://forum.unity.com/threads/how-to-add-the-icon-in-editorwindow-tab.29075/#post-2442771
- *  
+ *      
  */
 
 namespace Eliza.ConstraintEditor
@@ -52,9 +53,9 @@ namespace Eliza.ConstraintEditor
             ? trackedArmatures[currentArmatureId]
             : null;
         Dictionary<int, ArmatureData> trackedArmatures = new Dictionary<int, ArmatureData>();
-
-
+        
         EditorState state = EditorState.Editor;
+
 
         #region GUI Styles
         GUIStyle BoldText = new GUIStyle("boldLabel");
@@ -277,6 +278,10 @@ namespace Eliza.ConstraintEditor
             error.message = "Armature is valid";
             error.code = EditorErrorCode.NoError;
             return true;
+        }
+        private void ActivateConstraint(RotationConstraint constraint)
+        {
+
         }
 
         #region Standard State
@@ -567,7 +572,6 @@ namespace Eliza.ConstraintEditor
                 return pathFromArmature;
             }
         }
-
         private string pathFromArmature;
 
         public static ConstraintMetaData Generate(RotationConstraint constraint)
