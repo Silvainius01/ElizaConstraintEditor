@@ -1,12 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using System.Reflection;
-using Unity.VisualScripting;
 using UnityEditor;
-using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.Animations;
-using UnityEngine.WSA;
 
 namespace Eliza.ConstraintEditor
 {
@@ -111,6 +106,10 @@ namespace Eliza.ConstraintEditor
                     controlRect.xMin += 15;
                     controlRect.width = 50;
                     EditorGUI.Toggle(controlRect, values[i]);
+
+                    controlRect.xMin += 15;
+                    controlRect.width = 50;
+                    values[i] = EditorGUI.Toggle(controlRect, values[i]);
                 }
             }
 

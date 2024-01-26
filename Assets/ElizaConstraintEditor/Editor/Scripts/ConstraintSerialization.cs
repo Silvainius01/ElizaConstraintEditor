@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
@@ -122,6 +121,8 @@ namespace Eliza.ConstraintEditor
 
                     constraint.rotationAtRest = tData.RotationAtRest;
                     constraint.rotationOffset = tData.RotationOffset;
+
+                    constraint.transform.localRotation = Quaternion.Euler(tData.RotationAtRest);
 
                     foreach (var tSource in tData.Sources)
                     {

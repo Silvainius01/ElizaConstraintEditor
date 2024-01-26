@@ -1,0 +1,255 @@
+{
+    "TemplateName": "ShortStack-Dress",
+    "Constraints": [
+        {
+            "ArmaturePath": "Hips/Butt_L",
+            "Weight": 0.4000000059604645,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": true,
+            "FreezeY": false,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 90.0,
+                "y": 0.0,
+                "z": 180.0
+            },
+            "RotationOffset": {
+                "x": -85.9083023071289,
+                "y": -54.09379959106445,
+                "z": -125.9229965209961
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Leg_L",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Butt_R",
+            "Weight": 0.4000000059604645,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": true,
+            "FreezeY": false,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 90.0,
+                "y": 0.0,
+                "z": 180.0
+            },
+            "RotationOffset": {
+                "x": -85.9083023071289,
+                "y": 54.093849182128909,
+                "z": 125.9229965209961
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Leg_R",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Leg_L/KneeVolumePreserve_L",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": true,
+            "FreezeY": true,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": -87.59564208984375,
+                "y": -3.6713573932647707,
+                "z": 3.7205634117126467
+            },
+            "RotationOffset": {
+                "x": -81.4708023071289,
+                "y": 163.01852416992188,
+                "z": -163.24725341796876
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Leg_L/Shin_L",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Leg_L/LegTwist_L",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": false,
+            "FreezeY": true,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 1.7409998178482056,
+                "y": 0.0029933438636362554,
+                "z": 0.10699862241744995
+            },
+            "RotationOffset": {
+                "x": -8.82458782196045,
+                "y": -0.07143696397542954,
+                "z": -2.5197341442108156
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Leg_L/Shin_L",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Leg_R/KneeVolumePreserve_R",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": false,
+            "FreezeX": true,
+            "FreezeY": false,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 1.7410000562667847,
+                "y": -0.003000000026077032,
+                "z": -0.10700000077486038
+            },
+            "RotationOffset": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Leg_R/Shin_R",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Leg_R/LegTwist_R",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": false,
+            "FreezeY": true,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 1.7409998178482056,
+                "y": -0.0031971915159374477,
+                "z": -0.10700934380292893
+            },
+            "RotationOffset": {
+                "x": -8.824577331542969,
+                "y": 0.0712282583117485,
+                "z": 2.519763708114624
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Leg_R/Shin_R",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_L/Arm_L/ArmTwist_L",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": false,
+            "FreezeY": true,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 0.010693435557186604,
+                "y": -0.012289701960980893,
+                "z": 0.023658035323023797
+            },
+            "RotationOffset": {
+                "x": -2.4209163188934328,
+                "y": 5.649832725524902,
+                "z": -19.999183654785158
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_L/Arm_L/Elbow_L",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_L/Arm_L/Elbow_L/WristTwist_L",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": false,
+            "FreezeY": true,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 0.15300385653972627,
+                "y": 4.48006010055542,
+                "z": -0.16099683940410615
+            },
+            "RotationOffset": {
+                "x": 2.618260383605957,
+                "y": 0.9907821416854858,
+                "z": 3.4603066444396974
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_L/Arm_L/Elbow_L/Wrist_L",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_R/Arm_R/ArmTwist_R",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": false,
+            "FreezeY": true,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 0.010997052304446698,
+                "y": 5.645620822906494,
+                "z": -0.023989662528038026
+            },
+            "RotationOffset": {
+                "x": -4.336300373077393,
+                "y": -0.34265220165252688,
+                "z": 19.68475914001465
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_R/Arm_R/Elbow_R",
+                    "Weight": 1.0
+                }
+            ]
+        },
+        {
+            "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_R/Arm_R/Elbow_R/WristTwist_R",
+            "Weight": 0.5,
+            "IsActive": false,
+            "IsLocked": true,
+            "FreezeX": false,
+            "FreezeY": true,
+            "FreezeZ": false,
+            "RotationAtRest": {
+                "x": 0.15300388634204865,
+                "y": 0.7243032455444336,
+                "z": 0.16099683940410615
+            },
+            "RotationOffset": {
+                "x": 2.9363975524902345,
+                "y": 4.209953308105469,
+                "z": -3.2220513820648195
+            },
+            "Sources": [
+                {
+                    "ArmaturePath": "Hips/Spine/Chest/Upper_Chest/Shoulder_R/Arm_R/Elbow_R/Wrist_R",
+                    "Weight": 1.0
+                }
+            ]
+        }
+    ]
+}

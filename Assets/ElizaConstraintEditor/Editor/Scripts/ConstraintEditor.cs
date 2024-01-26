@@ -1,11 +1,8 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Animations;
 using System.Linq;
-using JetBrains.Annotations;
-using System.Reflection;
 
 /*
  *  Made for Eliza (and whomever she shares this with) by Silvainius
@@ -61,11 +58,6 @@ namespace Eliza.ConstraintEditor
 
         EditorState state = EditorState.Editor;
 
-
-        #region GUI Styles
-        GUIStyle BoldText = new GUIStyle("boldLabel");
-        #endregion
-
         [MenuItem("Window/Constraint Editor")]
         static void ShowWindow()
         {
@@ -114,6 +106,9 @@ namespace Eliza.ConstraintEditor
                 if (!trackedArmatures.ContainsKey(id))
                     trackedArmatures.Add(id, new ArmatureData(armature));
                 currentArmatureId = id;
+
+                // Always refresh data when selection changes.
+                currentArmature.RefreshConstraintData();
             }
 
             Repaint();
@@ -275,7 +270,7 @@ namespace Eliza.ConstraintEditor
             foreach (var cData in aramature.allConstraintData)
                 if (cData.Constraint == null) // Why wont the pattern match `is null` work?
                 {
-                    error.message = $"Transform {cData.PathFromArmature} is missing a constraint!";
+                    error.message = $"Transform {cData.PathFromArmature}/{cData.Constraint.name} is missing a constraint!";
                     error.code = EditorErrorCode.ConstraintNull;
                     return false;
                 }
@@ -317,7 +312,7 @@ namespace Eliza.ConstraintEditor
                 EditorUtility.DrawTitle($"{currentArmature.parentObject.name}/Armature");
                 EditorGUILayout.Space(10);
 
-                EditorGUILayout.TextField("Template Name", templateName);
+                templateName = EditorGUILayout.TextField("Template Name", templateName);
                 if (GUILayout.Button($"Save to {templateName}.json"))
                     currentArmature.SaveToTemplate(templateName);
                 if (GUILayout.Button($"Load {templateName}.json"))
@@ -337,7 +332,7 @@ namespace Eliza.ConstraintEditor
                     // If this entry is being removed, kill it and move on.
                     if (allConstraintData[i].RemovingState == ConstraintRemovalState.Removing)
                         currentArmature.RemoveConstraint(i--);
-                    else DrawConstraintFields(allConstraintData[i]);
+                    else allConstraintData[i].DrawFields();
                 }
 
                 if (!UserAddingSource)
@@ -360,172 +355,6 @@ namespace Eliza.ConstraintEditor
                 }
             }
         }
-        private void DrawConstraintFields(ConstraintMetaData cData)
-        {
-            GUIStyle textStyle = new GUIStyle()
-            {
-                fontStyle = FontStyle.Bold,
-            };
-
-            using (new GUILayout.HorizontalScope())
-            {
-                Rect rect = EditorGUILayout.GetControlRect();
-                Rect rect2 = EditorGUILayout.GetControlRect();
-                Rect combined = new Rect(rect);
-
-                combined.xMax = rect2.xMax;
-
-                if (GUI.Button(combined, string.Empty))
-                    cData.IsExpanded = !cData.IsExpanded;
-
-                EditorGUI.LabelField(rect, $"{cData.PathFromArmature}/");
-                EditorGUI.LabelField(rect2, cData.Constraint.name, new GUIStyle("boldLabel"));
-            }
-
-            if (cData.IsExpanded)
-            {
-                EditorGUI.indentLevel += 1;
-                using (new GUILayout.VerticalScope())
-                {
-                    EditorGUILayout.Space(10);
-
-                    if (cData.RemovingState == ConstraintRemovalState.UserConfirm)
-                    {
-                        // Extra spaces bc easier than figuring what BS the control rects are doing.
-                        EditorGUILayout.LabelField("ARE YOU SURE?      ", EditorUtility.DefaultTitleStyle);
-
-                        var rGroup = EditorUtility.GetCenteredRectGroupHorizontal(2, 250, 5);
-                        if (GUI.Button(rGroup[0], "Yes"))
-                            cData.RemovingState = ConstraintRemovalState.Removing;
-                        if (GUI.Button(rGroup[1], "No"))
-                            cData.RemovingState = ConstraintRemovalState.NotRemoving;
-                    }
-                    else
-                    {
-                        cData.RemovingState = EditorUtility.CenteredButton("Remove Constraint", 250)
-                            ? ConstraintRemovalState.UserConfirm
-                            : ConstraintRemovalState.NotRemoving;
-                    }
-
-                    if (Settings.AdvancedMode)
-                    {
-                        using (new GUILayout.VerticalScope())
-                        {
-                            cData.Constraint.constraintActive = EditorGUILayout.Toggle("Active", cData.Constraint.constraintActive);
-                            cData.Constraint.locked = EditorGUILayout.Toggle("Locked", cData.Constraint.locked);
-
-                            bool showButton = !(cData.Constraint.locked && cData.Constraint.constraintActive);
-                            if (showButton && EditorUtility.CenteredButton("Activate and Lock", 250))
-                                cData.Constraint.ActivateAndPreserveOffset();
-                        }
-                    }
-                    else
-                    {
-                        if (cData.Constraint.constraintActive)
-                        {
-                            if (EditorUtility.CenteredButton("Constraint ON", 250))
-                            {
-                                cData.Constraint.locked = false;
-                                cData.Constraint.constraintActive = false;
-                            }
-                        }
-                        else if (EditorUtility.CenteredButton("Constraint OFF", 250))
-                            cData.Constraint.ActivateAndPreserveOffset();
-                    }
-
-                    cData.Constraint.weight = EditorGUILayout.Slider("Weight", cData.Constraint.weight, 0.0f, 1.0f);
-                    //cData.Constraint.locked = EditorGUILayout.Toggle("Lock", cData.Constraint.locked);
-
-                    if (Settings.AdvancedMode)
-                    {
-                        GUI.enabled = !cData.Constraint.locked;
-                        //cData.Constraint.transform.localEulerAngles = EditorUtility.DrawCustomVector3("Object Rotation", cData.Constraint.transform.localEulerAngles); ;
-                        cData.Constraint.rotationAtRest = EditorUtility.DrawCustomVector3("Rotation at Rest", cData.Constraint.rotationAtRest);
-                        cData.Constraint.rotationOffset = EditorUtility.DrawCustomVector3("Rotation Offset", cData.Constraint.rotationOffset);
-                        GUI.enabled = true;
-
-                        if (EditorUtility.CenteredButton("Recalculate Offset", 250))
-                            cData.Constraint.RecalculateOffset();
-
-                        cData.Constraint.rotationAxis = EditorUtility.DrawCustomAxis("Freeze Rotation", cData.Constraint.rotationAxis);
-                    }
-                    else
-                    {
-                        GUI.enabled = !cData.Constraint.locked;
-                        Vector3 rotation = EditorUtility.DrawCustomVector3("Rotation at Rest", cData.Constraint.rotationAtRest);
-
-                        cData.Constraint.rotationAtRest = rotation;
-                        cData.Constraint.transform.localEulerAngles = rotation;
-                        cData.Constraint.rotationAxis = EditorUtility.DrawCustomAxis("Freeze Rotation", cData.Constraint.rotationAxis);
-                        GUI.enabled = true;
-                    }
-
-                    EditorGUILayout.LabelField("Sources:");
-                    EditorGUI.indentLevel += 1;
-                    using (new GUILayout.VerticalScope("helpbox"))
-                    {
-                        List<ConstraintSource> sources = new List<ConstraintSource>(cData.Constraint.sourceCount);
-                        cData.Constraint.GetSources(sources);
-
-                        float weightFieldMinX = 0;
-                        Rect targetsLabelRect;
-                        Rect weightsLabelRect;
-                        Rect targetFieldRect;
-                        Rect weightFieldRect;
-
-                        // Get the control rects now, since they wont allign with the sources.
-                        using (new GUILayout.HorizontalScope())
-                        {
-                            targetsLabelRect = targetFieldRect = EditorGUILayout.GetControlRect();
-                            weightsLabelRect = weightFieldRect = EditorGUILayout.GetControlRect();
-                        }
-
-                        for (int i = 0; i < sources.Count; i++)
-                        {
-                            ConstraintSource source = sources[i];
-                            using (new GUILayout.HorizontalScope())
-                            {
-                                // Save rects so we can align things later.
-                                targetFieldRect = EditorGUILayout.GetControlRect();
-                                weightFieldRect = EditorGUILayout.GetControlRect(GUILayout.Width(100));
-
-                                if (GUILayout.Button("Remove", GUILayout.Width(65)))
-                                    cData.Constraint.RemoveSource(i);
-
-                                float newWeight = EditorGUI.FloatField(weightFieldRect, source.weight);
-                                Transform newSource = EditorGUI.ObjectField(targetFieldRect, source.sourceTransform, typeof(Transform), true) as Transform;
-
-                                if (newWeight != source.weight || newSource != source.sourceTransform)
-                                {
-                                    cData.Constraint.SetSource(i, new ConstraintSource() { sourceTransform = newSource, weight = newWeight });
-                                    cData.Constraint.RecalculateOffset();
-                                }
-
-                                weightFieldMinX = weightFieldRect.xMin;
-                            }
-                        }
-
-                        if (sources.Count > 0)
-                            weightsLabelRect.xMin = weightFieldMinX;
-
-                        EditorGUI.LabelField(targetsLabelRect, "Targets");
-                        EditorGUI.LabelField(weightsLabelRect, "Weights");
-
-                        Rect sourceButtonRect = EditorGUILayout.GetControlRect();
-                        sourceButtonRect.max = new Vector2(weightFieldRect.max.x, sourceButtonRect.max.y);
-                        if (GUI.Button(EditorGUI.IndentedRect(sourceButtonRect), "Add Source"))
-                        {
-                            cData.Constraint.AddSource(new ConstraintSource() { sourceTransform = null, weight = 1.0f });
-                            cData.Constraint.RecalculateOffset();
-                        }
-                    }
-                    EditorGUI.indentLevel -= 1;
-                }
-                EditorGUI.indentLevel -= 1;
-
-                EditorGUILayout.Space(5);
-            }
-        }
         #endregion
 
         #region Settings State
@@ -545,7 +374,7 @@ namespace Eliza.ConstraintEditor
                     "If enabled, loading a template will destroy any existing constraints.");
                 DrawToggleSetting(ref settings.AdvancedMode,
                     "Advanced Mode",
-                    "If enabled, the editor removes some protections and allows you to edit constraint data more directly.\nReccomendation is to leave this off.");
+                    "If enabled, the editor removes some protections and allows you to edit constraint data more freely.");
 
                 if (Settings.EnableDebugMode)
                 {
@@ -563,51 +392,6 @@ namespace Eliza.ConstraintEditor
             value = EditorGUILayout.Toggle(new GUIContent(label, tooltip), value, GUILayout.ExpandWidth(true));
         }
         #endregion
-    }
-
-    public class ConstraintMetaData
-    {
-        public bool IsExpanded;
-        public string FullPath;
-        public string[] SplitPath;
-        public RotationConstraint Constraint;
-        public ConstraintRemovalState RemovingState = ConstraintRemovalState.NotRemoving;
-
-        public string PathFromArmature
-        {
-            get
-            {
-                if (pathFromArmature is not null && pathFromArmature.Length > 0)
-                    return pathFromArmature;
-
-                string path = SplitPath[2];
-                for (int i = 3; i < SplitPath.Length - 1; ++i)
-                    path = $"{path}/{SplitPath[i]}";
-                pathFromArmature = path;
-                return pathFromArmature;
-            }
-        }
-        private string pathFromArmature;
-
-        public static ConstraintMetaData Generate(RotationConstraint constraint)
-        {
-            Transform parent = constraint.transform.parent;
-            string fullPath = constraint.name;
-
-            while (parent is not null)
-            {
-                fullPath = $"{parent.name}/{fullPath}";
-                parent = parent.parent;
-            }
-
-            return new ConstraintMetaData()
-            {
-                IsExpanded = false,
-                FullPath = fullPath,
-                SplitPath = fullPath.Split('/'),
-                Constraint = constraint
-            };
-        }
     }
 
     public class ArmatureData
@@ -630,12 +414,12 @@ namespace Eliza.ConstraintEditor
             allConstraintData.Clear();
             allConstraintData.Capacity = rotationConstraints.Length;
             foreach (var constraint in armatureTransform.GetComponentsInChildren<RotationConstraint>())
-                allConstraintData.Add(ConstraintMetaData.Generate(constraint));
+                allConstraintData.Add(new ConstraintMetaData(constraint));
         }
 
         public void AddConstraint(RotationConstraint constraint)
         {
-            ConstraintMetaData cData = ConstraintMetaData.Generate(constraint);
+            ConstraintMetaData cData = new ConstraintMetaData(constraint);
 
             cData.IsExpanded = true;
             allConstraintData.Add(cData);
